@@ -33,10 +33,10 @@ export function calcTileType(index, boardSize) {
       return 'top-right';
     case index === boardSize * (boardSize - 1):
       return 'bottom-left';
-    case index < boardSize - 1:
-      return 'top';
     case index === boardSize * boardSize - 1:
       return 'bottom-right';
+    case index < boardSize - 1:
+      return 'top';
     case index > boardSize * (boardSize - 1):
       return 'bottom';
     case index % boardSize === 0:
