@@ -10,6 +10,12 @@
  */
 export function* characterGenerator(allowedTypes, maxLevel) {
   // TODO: write logic here
+  const randomInteger = (min, max) => 
+    Math.floor(Math.random() * (Math.floor(max) - Math.ceil(min) + 1)) + Math.ceil(min);
+
+  while (true) {
+    yield new allowedTypes[randomInteger(0, allowedTypes.length - 1)](randomInteger(1, maxLevel));
+  }
 }
 
 /**
