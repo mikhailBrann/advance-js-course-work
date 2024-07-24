@@ -1,3 +1,5 @@
+import Team from "./Team";
+
 /**
  * Формирует экземпляр персонажа из массива allowedTypes со
  * случайным уровнем от 1 до maxLevel
@@ -27,4 +29,18 @@ export function* characterGenerator(allowedTypes, maxLevel) {
  * */
 export function generateTeam(allowedTypes, maxLevel, characterCount) {
   // TODO: write logic here
+  if (characterCount <= 0) {
+    return new Team([]);
+  }
+
+  const chapterGenerator = characterGenerator(allowedTypes, maxLevel);
+  const characters = [];
+  let count = 0;
+
+  while (count < characterCount) {
+    characters.push(chapterGenerator.next());
+    count += 1;
+  }
+
+  return new Team(characters);
 }
