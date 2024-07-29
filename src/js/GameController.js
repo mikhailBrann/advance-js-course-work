@@ -13,12 +13,13 @@ export default class GameController {
   constructor(gamePlay, stateService) {
     this.gamePlay = gamePlay;
     this.stateService = stateService;
+    this.charactersOnField = [];
+    this.selectedCharacterIndex = null;
+    this.chapterIsWalks = false;
+    this.chapterIsAttacks = false;
   }
 
   init() {
-    this.charactersOnField = [];
-    this.selectedCharacterIndex = null;
-
     // TODO: add event listeners to gamePlay events
     this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
     this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
@@ -47,29 +48,30 @@ export default class GameController {
   }
 
   onCellClick(index) {
-    // TODO: react to click
     const findChar = this.findCharacter(index);
-    const isHero = this.characterIs(index);
 
-    console.log(findChar.character.walkingDistance);
+    // TODO: react to click
+    if(this.selectedCharacterIndex !== null) {
+      this.setActionCursor(index);
+      return;
+    }
 
-    if(isHero) {
+    //if the hero does not choose and click on empty cell
+    if(!findChar) {
+      this.gamePlay.constructor.showError('please, select character cell');
+      return;
+    }
+
+    //if the hero does not choose and click on hero cell
+    if(this.characterIs(index)) {
       this.charactersOnField.forEach(char => this.gamePlay.deselectCell(char.position));
       this.gamePlay.selectCell(index);
       this.selectedCharacterIndex = index;
       return;
     }
 
-    if(this.selectedCharacterIndex !== null) {
-      return;
-    } 
-    
-    if(!findChar) {
-      this.gamePlay.constructor.showError('please, select character cell');
-      return;
-    }
-
-    if(!isHero) {
+    //if the hero does not choose and click on enemy cell
+    if(this.characterIs(index, [Daemon, Undead, Vampire])) {
       this.gamePlay.constructor.showError('you can\'t select enemies cell');
       return;
     }
@@ -84,26 +86,84 @@ export default class GameController {
 
   onCellLeave(index) {
     // TODO: react to mouse leave
-    this.gamePlay.hideCellTooltip(index);
+    this.deselectCells();
+  }
+
+  setActionCursor(indexCell) {
+    const hero = this.findCharacter(this.selectedCharacterIndex);
+
+    //check if cursor indecate of walking
+    const checkWalkRadius = checkMotionRadius(indexCell, hero.position, hero.character.walkingDistance, this.gamePlay.boardSize);
+    const checkAttackRadius = checkMotionRadius(indexCell, hero.position, hero.character.attackDistance, this.gamePlay.boardSize);
+    const enemyIndexInTeam = this.charactersOnField.indexOf(this.findCharacter(indexCell));
+    const enemy = this.charactersOnField[enemyIndexInTeam];
+
+    if(checkWalkRadius && enemyIndexInTeam === -1 && !this.chapterIsWalks) {
+      this.chapterIsWalks = true;
+      this.charactersOnField.forEach(char => this.gamePlay.deselectCell(char.position));
+      const currentChar = this.charactersOnField[this.charactersOnField.indexOf(hero)];
+
+      this.selectedCharacterIndex = indexCell;
+      currentChar.position = indexCell;
+      this.gamePlay.selectCell(indexCell);
+      this.resetChaptersView(indexCell);
+      return;
+    }  
+
+
+    if(this.characterIs(indexCell)) {
+      this.charactersOnField.forEach(char => this.gamePlay.deselectCell(char.position));
+      this.gamePlay.selectCell(indexCell);
+      this.selectedCharacterIndex = indexCell;
+      this.resetChapterMove();
+      return;
+    }
+
+    //check if cursor indecate of attack
+    if(checkAttackRadius && !this.chapterIsAttacks) {
+      this.chapterIsAttacks = true;
+
+      if(!enemy) {
+        return;
+      }
+      
+      const damage = enemy.character.getDamage(hero.character.attack);
+
+      this.gamePlay.showDamage(enemy.position, damage).then(() => {
+        if(damage >= enemy.character.health) {
+          this.charactersOnField.splice(enemyIndexInTeam, 1);
+        } else {
+          enemy.character.setDamage(damage);
+        }
+        
+        this.resetChaptersView(indexCell);
+        return;
+      });
+    }
+
+    
   }
 
   setViewCursor(indexCell) {
     if(this.selectedCharacterIndex !== null) {
-      const hero = this.charactersOnField.find(char => char.position === this.selectedCharacterIndex);
+      const hero = this.findCharacter(this.selectedCharacterIndex);
 
+      //default cursor on cell
       if(this.characterIs(indexCell)) {
         this.gamePlay.setCursor('pointer');
         return;
       }
 
       //check if cursor indecate of enemy
-      if(this.characterIs(indexCell, [Daemon, Undead, Vampire])) {
+      const checkAttackDistance = checkMotionRadius(indexCell, hero.position, hero.character.attackDistance, this.gamePlay.boardSize); 
+      if(checkAttackDistance && this.characterIs(indexCell, [Daemon, Undead, Vampire])) {
         this.gamePlay.setCursor('crosshair');
+        this.gamePlay.selectCell(indexCell, 'red');
         return;
       }
 
-      const checkWalkRadius = checkMotionRadius(indexCell, hero.position, hero.character.walkingDistance, this.gamePlay.boardSize);
-
+      //check if cursor indecate of walking
+      const checkWalkRadius = checkMotionRadius(indexCell, hero.position, hero.character.walkingDistance, this.gamePlay.boardSize);    
       if(checkWalkRadius) {
         this.deselectCells();
         this.gamePlay.setCursor('pointer');
@@ -111,8 +171,8 @@ export default class GameController {
         return;
       }
 
-      this.deselectCells();
-      this.gamePlay.setCursor('auto');
+      //reload cursor statment
+      this.gamePlay.setCursor('not-allowed');
       return;
     } 
   }
@@ -135,12 +195,28 @@ export default class GameController {
   }
 
   findCharacter(index) {
-    return this.charactersOnField.find(char => char.position === index);
+    return this.charactersOnField.find(char => char.position === index) ?? false;
   }
 
   characterIs(index, charactersType=[Bowman, Swordsman, Magician]) {
     const findChar = this.findCharacter(index);
     return findChar? charactersType.find(char => findChar.character instanceof char) : false;
+  }
+
+  resetChapterMove(walk=false, attack=false) {
+    this.chapterIsWalks = walk;
+    this.chapterIsAttacks = attack;
+  }
+
+  resetChaptersView(indexCell) {
+    if(indexCell) {
+      this.gamePlay.hideCellTooltip(indexCell);
+    }
+
+    this.gamePlay.redrawPositions(this.charactersOnField);
+    this.charactersOnField.forEach(char => this.gamePlay.deselectCell(char.position));
+    this.gamePlay.setCursor('auto');
+    //this.selectedCharacterIndex = null;
   }
 
   deselectCells() {

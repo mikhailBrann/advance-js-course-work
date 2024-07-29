@@ -49,4 +49,12 @@ export default class Character {
         break;
     }
   }
+
+  setDamage(damage) {
+    this.health -= this.getDamage(damage);
+  }
+
+  getDamage(damage) {
+    return Math.max(damage - this.defence, damage * 2);
+  }
 }
