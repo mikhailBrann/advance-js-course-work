@@ -23,6 +23,30 @@ export default class Character {
     // TODO: выбросите исключение, если кто-то использует "new Character()"
     if (new.target === Character) {
       throw new Error("You can't create instances of a class Character");
+    } 
+    
+    this.setMotionParams(type);
+  }
+
+  setMotionParams(type) {
+    switch(type) {
+      case ['swordsman', 'undead'].find(charType => charType === type):
+        this.walkingDistance = 4;
+        this.attackDistance = 1;
+        break;
+
+      case ['bowman', 'vampire'].find(charType => charType === type):
+        this.walkingDistance = 2;
+        this.attackDistance = 2;
+        break;
+
+      case ['magician', 'daemon'].find(charType => charType === type):
+        this.walkingDistance = 1;
+        this.attackDistance = 4;
+        break;
+    
+      default:
+        break;
     }
   }
 }

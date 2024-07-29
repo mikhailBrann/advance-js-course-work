@@ -94,3 +94,27 @@ export function calcPositionToField(boardSize, occupiedCells=[], direction='left
 
   return randomNumberInArr(availableCells.filter(cell => !occupiedCells.includes(cell)));
 }
+
+export function checkMotionRadius(index, playerIndex, motionValue, boardSize) {
+  const targetRow = Math.floor(index / boardSize);
+  const targetCol = index % boardSize;
+  const playerRow = Math.floor(playerIndex / boardSize);
+  const playerCol = playerIndex % boardSize;
+
+  const rowDistance = Math.abs(targetRow - playerRow);
+  const colDistance = Math.abs(targetCol - playerCol);
+
+  // Check if the move is within the board boundaries
+  const isWithinBoard = index >= 0 && index < boardSize * boardSize;
+
+  // Check if the move is either horizontal, vertical, or diagonal
+  const isValidDirection = 
+    (rowDistance === 0 && colDistance > 0) || // Horizontal
+    (colDistance === 0 && rowDistance > 0) || // Vertical
+    (rowDistance === colDistance); // Diagonal
+
+  // Check if the move is within the character's range
+  const isWithinRange = Math.max(rowDistance, colDistance) <= motionValue;
+
+  return isWithinBoard && isValidDirection && isWithinRange;
+}
