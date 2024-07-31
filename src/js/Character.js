@@ -55,6 +55,6 @@ export default class Character {
   }
 
   getDamage(damage) {
-    return Math.max(damage - this.defence, damage * 2);
+    return Math.max(damage - this.defence, damage * 0.1);
   }
 }

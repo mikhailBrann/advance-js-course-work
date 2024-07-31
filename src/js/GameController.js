@@ -91,33 +91,30 @@ export default class GameController {
 
   setActionCursor(indexCell) {
     const hero = this.findCharacter(this.selectedCharacterIndex);
-
-    //check if cursor indecate of walking
     const checkWalkRadius = checkMotionRadius(indexCell, hero.position, hero.character.walkingDistance, this.gamePlay.boardSize);
     const checkAttackRadius = checkMotionRadius(indexCell, hero.position, hero.character.attackDistance, this.gamePlay.boardSize);
     const enemyIndexInTeam = this.charactersOnField.indexOf(this.findCharacter(indexCell));
     const enemy = this.charactersOnField[enemyIndexInTeam];
 
+    //check if choise chapter
+    if(this.characterIs(indexCell)) {
+      this.charactersOnField.forEach(char => this.gamePlay.deselectCell(char.position));
+      this.gamePlay.selectCell(indexCell);
+      this.selectedCharacterIndex = indexCell;
+      return;
+    }
+
+    //check if cursor indecate of walking
     if(checkWalkRadius && enemyIndexInTeam === -1 && !this.chapterIsWalks) {
-      this.chapterIsWalks = true;
       this.charactersOnField.forEach(char => this.gamePlay.deselectCell(char.position));
       const currentChar = this.charactersOnField[this.charactersOnField.indexOf(hero)];
 
       this.selectedCharacterIndex = indexCell;
       currentChar.position = indexCell;
-      this.gamePlay.selectCell(indexCell);
       this.resetChaptersView(indexCell);
-      return;
-    }  
-
-
-    if(this.characterIs(indexCell)) {
-      this.charactersOnField.forEach(char => this.gamePlay.deselectCell(char.position));
-      this.gamePlay.selectCell(indexCell);
-      this.selectedCharacterIndex = indexCell;
       this.resetChapterMove();
       return;
-    }
+    }  
 
     //check if cursor indecate of attack
     if(checkAttackRadius && !this.chapterIsAttacks) {
@@ -137,11 +134,10 @@ export default class GameController {
         }
         
         this.resetChaptersView(indexCell);
+        this.resetChapterMove();
         return;
       });
     }
-
-    
   }
 
   setViewCursor(indexCell) {
@@ -206,6 +202,7 @@ export default class GameController {
   resetChapterMove(walk=false, attack=false) {
     this.chapterIsWalks = walk;
     this.chapterIsAttacks = attack;
+    this.selectedCharacterIndex = null;
   }
 
   resetChaptersView(indexCell) {
@@ -216,7 +213,6 @@ export default class GameController {
     this.gamePlay.redrawPositions(this.charactersOnField);
     this.charactersOnField.forEach(char => this.gamePlay.deselectCell(char.position));
     this.gamePlay.setCursor('auto');
-    //this.selectedCharacterIndex = null;
   }
 
   deselectCells() {

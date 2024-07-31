@@ -103,17 +103,13 @@ export function checkMotionRadius(index, playerIndex, motionValue, boardSize) {
 
   const rowDistance = Math.abs(targetRow - playerRow);
   const colDistance = Math.abs(targetCol - playerCol);
-
   // Check if the move is within the board boundaries
   const isWithinBoard = index >= 0 && index < boardSize * boardSize;
-
   // Check if the move is either horizontal, vertical, or diagonal
   const isValidDirection = 
     (rowDistance === 0 && colDistance > 0) || // Horizontal
     (colDistance === 0 && rowDistance > 0) || // Vertical
     (rowDistance === colDistance); // Diagonal
-
-  // Check if the move is within the character's range
   const isWithinRange = Math.max(rowDistance, colDistance) <= motionValue;
 
   return isWithinBoard && isValidDirection && isWithinRange;
