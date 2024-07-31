@@ -114,3 +114,27 @@ export function checkMotionRadius(index, playerIndex, motionValue, boardSize) {
 
   return isWithinBoard && isValidDirection && isWithinRange;
 }
+
+export function getMotionRadius(characterIndex, motionValue, boardSize) {
+  const playerRow = Math.floor(characterIndex / boardSize);
+  const playerCol = characterIndex % boardSize;
+  const possibleMoves = [];
+
+  for (let row = 0; row < boardSize; row++) {
+    for (let col = 0; col < boardSize; col++) {
+      const index = row * boardSize + col;
+      const rowDistance = Math.abs(row - playerRow);
+      const colDistance = Math.abs(col - playerCol);
+
+      const isHorizontal = rowDistance === 0 && colDistance > 0 && colDistance < motionValue;
+      const isVertical = colDistance === 0 && rowDistance > 0 && rowDistance < motionValue;
+      const isDiagonal = rowDistance === colDistance && rowDistance <= motionValue;
+
+      if ((isHorizontal || isVertical || isDiagonal) && index !== characterIndex && index <= (boardSize * boardSize - 1)) {
+        possibleMoves.push(index);
+      }
+    }
+  }
+
+  return possibleMoves;
+}

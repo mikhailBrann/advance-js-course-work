@@ -1,5 +1,5 @@
 import themes from './themes';
-import { calcPositionToField, checkMotionRadius } from './utils';
+import { calcPositionToField, checkMotionRadius, getMotionRadius } from './utils';
 import { generateTeam } from './generators';
 import PositionedCharacter from './PositionedCharacter';
 import Bowman from './characters/Bowman';
@@ -49,6 +49,8 @@ export default class GameController {
 
   onCellClick(index) {
     const findChar = this.findCharacter(index);
+
+    this.setEnemyAction();
 
     // TODO: react to click
     if(this.selectedCharacterIndex !== null) {
@@ -173,6 +175,27 @@ export default class GameController {
     } 
   }
 
+  setEnemyAction() {
+    const enemies = this.getChaptersOfType();
+    const randomEnemy = enemies[Math.floor(Math.random() * enemies.length)];
+    const nearbyHeroesPosition = this.getChaptersOfType([Swordsman, Bowman, Magician]).reduce((prev, curr) => 
+      Math.abs(curr.position - randomEnemy.position) < Math.abs(prev - randomEnemy.position) ? curr.position : prev
+    , 0);
+
+    console.log(
+      getMotionRadius(randomEnemy.position, randomEnemy.character.walkingDistance, this.gamePlay.boardSize),
+      randomEnemy.position,
+      this.findCharacter(nearbyHeroesPosition),
+      this.findCharacter(randomEnemy.position)
+    );
+
+    //const checkWalkRadius = checkMotionRadius(indexCell, hero.position, hero.character.walkingDistance, this.gamePlay.boardSize);
+    //const checkAttackRadius = checkMotionRadius(indexCell, hero.position, hero.character.attackDistance, this.gamePlay.boardSize);
+    //const nearbyHero = this.findCharacter(nearbyHeroesPosition);
+
+    
+  }
+
   showCharacter(index) {
     const findChar = this.findCharacter(index);
 
@@ -197,6 +220,10 @@ export default class GameController {
   characterIs(index, charactersType=[Bowman, Swordsman, Magician]) {
     const findChar = this.findCharacter(index);
     return findChar? charactersType.find(char => findChar.character instanceof char) : false;
+  }
+
+  getChaptersOfType(types=[Daemon, Undead, Vampire]) {
+    return this.charactersOnField.filter(char => types.some(type => char.character instanceof type));
   }
 
   resetChapterMove(walk=false, attack=false) {
