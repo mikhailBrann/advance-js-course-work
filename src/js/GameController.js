@@ -25,13 +25,29 @@ export default class GameController {
   }
 
   init() {
+    //render first screen
+    this.gamePlay.drawUi(themes.prairie);
+
     // TODO: add event listeners to gamePlay events
+    
+    this.gamePlay.addNewGameListener(this.setNewGame.bind(this));
+
+    // TODO: load saved stated from stateService
+
+  }
+
+  generateGame(levelTheme, chapters) {
+    this.gamePlay.drawUi(levelTheme);
+    this.gamePlay.redrawPositions(chapters);
+  }
+
+  setNewGame() {
     this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
     this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
     this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
 
-    // TODO: load saved stated from stateService
-    this.gamePlay.drawUi(themes.prairie);
+    this.params.charactersOnField = [];
+
     const heroesTeam = generateTeam([Bowman, Swordsman, Magician], 3, this.params.enemiesCount);
     const enemiesTeam = generateTeam([Daemon, Undead, Vampire], 3, this.params.heroesCount);
     const startHeroesPositionPointExludes = [];
@@ -49,7 +65,7 @@ export default class GameController {
       this.params.charactersOnField.push(new PositionedCharacter(character.value, position));
     });
 
-    this.gamePlay.redrawPositions(this.params.charactersOnField);
+    this.generateGame(themes.prairie, this.params.charactersOnField);
   }
 
   onCellClick(index) {
@@ -58,8 +74,6 @@ export default class GameController {
     // TODO: react to click
     if(this.params.selectedCharacterIndex !== null) {
       this.setActionCursor(index);
-      //enemy action
-      this.setEnemyAction();
       return;
     }
 
@@ -120,6 +134,8 @@ export default class GameController {
       currentChar.position = indexCell;
       this.resetChaptersView(indexCell);
       this.resetChapterMove();
+      //enemy action
+      this.setEnemyAction();
       return;
     }  
 
@@ -142,6 +158,8 @@ export default class GameController {
         
         this.resetChaptersView(indexCell);
         this.resetChapterMove();
+        //enemy action
+        this.setEnemyAction();
         return;
       });
     }
@@ -225,8 +243,9 @@ export default class GameController {
     });
 
     //if enemy dont can attack, but can walk
-    if(!isАctionComplite) {
-      const randomEnemy = enemies[Math.floor(Math.random() * enemies.length)];
+    const randomEnemy = enemies.length ? enemies[Math.floor(Math.random() * enemies.length)] : false;
+
+    if(!isАctionComplite && randomEnemy) {
       const enemyWalksMotions = getMotionRadius(
         randomEnemy.position, 
         randomEnemy.character.walkingDistance, 
