@@ -126,8 +126,8 @@ export function getMotionRadius(characterIndex, motionValue, boardSize) {
       const rowDistance = Math.abs(row - playerRow);
       const colDistance = Math.abs(col - playerCol);
 
-      const isHorizontal = rowDistance === 0 && colDistance > 0 && colDistance < motionValue;
-      const isVertical = colDistance === 0 && rowDistance > 0 && rowDistance < motionValue;
+      const isHorizontal = rowDistance === 0 && colDistance > 0 && colDistance <= motionValue;
+      const isVertical = colDistance === 0 && rowDistance > 0 && rowDistance <= motionValue;
       const isDiagonal = rowDistance === colDistance && rowDistance <= motionValue;
 
       if ((isHorizontal || isVertical || isDiagonal) && index !== characterIndex && index <= (boardSize * boardSize - 1)) {

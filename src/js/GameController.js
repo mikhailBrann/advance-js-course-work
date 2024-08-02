@@ -13,10 +13,15 @@ export default class GameController {
   constructor(gamePlay, stateService) {
     this.gamePlay = gamePlay;
     this.stateService = stateService;
-    this.charactersOnField = [];
-    this.selectedCharacterIndex = null;
-    this.chapterIsWalks = false;
-    this.chapterIsAttacks = false;
+
+    this.params = {
+      charactersOnField: [],
+      selectedCharacterIndex: null,
+      chapterIsWalks: false,
+      chapterIsAttacks: false,
+      enemiesCount: 3,
+      heroesCount: 3
+    };
   }
 
   init() {
@@ -27,34 +32,34 @@ export default class GameController {
 
     // TODO: load saved stated from stateService
     this.gamePlay.drawUi(themes.prairie);
-    const heroesTeam = generateTeam([Bowman, Swordsman, Magician], 3, 3);
-    const enemiesTeam = generateTeam([Daemon, Undead, Vampire], 3, 3);
+    const heroesTeam = generateTeam([Bowman, Swordsman, Magician], 3, this.params.enemiesCount);
+    const enemiesTeam = generateTeam([Daemon, Undead, Vampire], 3, this.params.heroesCount);
     const startHeroesPositionPointExludes = [];
     const startEnemiesPositionPointExludes = [];
     
     heroesTeam.characters.forEach( character => {
       const position = calcPositionToField(this.gamePlay.boardSize, startHeroesPositionPointExludes, 'left');
       startHeroesPositionPointExludes.push(position);
-      this.charactersOnField.push(new PositionedCharacter(character.value, position));
+      this.params.charactersOnField.push(new PositionedCharacter(character.value, position));
     });
 
-    enemiesTeam.characters.forEach( character => {
+    enemiesTeam.characters.forEach(character => {
       const position = calcPositionToField(this.gamePlay.boardSize, startEnemiesPositionPointExludes, 'right');
       startEnemiesPositionPointExludes.push(position);
-      this.charactersOnField.push(new PositionedCharacter(character.value, position));
+      this.params.charactersOnField.push(new PositionedCharacter(character.value, position));
     });
 
-    this.gamePlay.redrawPositions(this.charactersOnField);
+    this.gamePlay.redrawPositions(this.params.charactersOnField);
   }
 
   onCellClick(index) {
     const findChar = this.findCharacter(index);
 
-    this.setEnemyAction();
-
     // TODO: react to click
-    if(this.selectedCharacterIndex !== null) {
+    if(this.params.selectedCharacterIndex !== null) {
       this.setActionCursor(index);
+      //enemy action
+      this.setEnemyAction();
       return;
     }
 
@@ -66,9 +71,9 @@ export default class GameController {
 
     //if the hero does not choose and click on hero cell
     if(this.characterIs(index)) {
-      this.charactersOnField.forEach(char => this.gamePlay.deselectCell(char.position));
+      this.params.charactersOnField.forEach(char => this.gamePlay.deselectCell(char.position));
       this.gamePlay.selectCell(index);
-      this.selectedCharacterIndex = index;
+      this.params.selectedCharacterIndex = index;
       return;
     }
 
@@ -92,26 +97,26 @@ export default class GameController {
   }
 
   setActionCursor(indexCell) {
-    const hero = this.findCharacter(this.selectedCharacterIndex);
+    const hero = this.findCharacter(this.params.selectedCharacterIndex);
     const checkWalkRadius = checkMotionRadius(indexCell, hero.position, hero.character.walkingDistance, this.gamePlay.boardSize);
     const checkAttackRadius = checkMotionRadius(indexCell, hero.position, hero.character.attackDistance, this.gamePlay.boardSize);
-    const enemyIndexInTeam = this.charactersOnField.indexOf(this.findCharacter(indexCell));
-    const enemy = this.charactersOnField[enemyIndexInTeam];
+    const enemyIndexInTeam = this.params.charactersOnField.indexOf(this.findCharacter(indexCell));
+    const enemy = this.params.charactersOnField[enemyIndexInTeam];
 
     //check if choise chapter
     if(this.characterIs(indexCell)) {
-      this.charactersOnField.forEach(char => this.gamePlay.deselectCell(char.position));
+      this.params.charactersOnField.forEach(char => this.gamePlay.deselectCell(char.position));
       this.gamePlay.selectCell(indexCell);
-      this.selectedCharacterIndex = indexCell;
+      this.params.selectedCharacterIndex = indexCell;
       return;
     }
 
     //check if cursor indecate of walking
-    if(checkWalkRadius && enemyIndexInTeam === -1 && !this.chapterIsWalks) {
-      this.charactersOnField.forEach(char => this.gamePlay.deselectCell(char.position));
-      const currentChar = this.charactersOnField[this.charactersOnField.indexOf(hero)];
+    if(checkWalkRadius && enemyIndexInTeam === -1 && !this.params.chapterIsWalks) {
+      this.params.charactersOnField.forEach(char => this.gamePlay.deselectCell(char.position));
+      const currentChar = this.params.charactersOnField[this.params.charactersOnField.indexOf(hero)];
 
-      this.selectedCharacterIndex = indexCell;
+      this.params.selectedCharacterIndex = indexCell;
       currentChar.position = indexCell;
       this.resetChaptersView(indexCell);
       this.resetChapterMove();
@@ -119,8 +124,8 @@ export default class GameController {
     }  
 
     //check if cursor indecate of attack
-    if(checkAttackRadius && !this.chapterIsAttacks) {
-      this.chapterIsAttacks = true;
+    if(checkAttackRadius && !this.params.chapterIsAttacks) {
+      this.params.chapterIsAttacks = true;
 
       if(!enemy) {
         return;
@@ -130,7 +135,7 @@ export default class GameController {
 
       this.gamePlay.showDamage(enemy.position, damage).then(() => {
         if(damage >= enemy.character.health) {
-          this.charactersOnField.splice(enemyIndexInTeam, 1);
+          this.params.charactersOnField.splice(enemyIndexInTeam, 1);
         } else {
           enemy.character.setDamage(damage);
         }
@@ -143,8 +148,8 @@ export default class GameController {
   }
 
   setViewCursor(indexCell) {
-    if(this.selectedCharacterIndex !== null) {
-      const hero = this.findCharacter(this.selectedCharacterIndex);
+    if(this.params.selectedCharacterIndex !== null) {
+      const hero = this.findCharacter(this.params.selectedCharacterIndex);
 
       //default cursor on cell
       if(this.characterIs(indexCell)) {
@@ -177,23 +182,63 @@ export default class GameController {
 
   setEnemyAction() {
     const enemies = this.getChaptersOfType();
-    const randomEnemy = enemies[Math.floor(Math.random() * enemies.length)];
-    const nearbyHeroesPosition = this.getChaptersOfType([Swordsman, Bowman, Magician]).reduce((prev, curr) => 
-      Math.abs(curr.position - randomEnemy.position) < Math.abs(prev - randomEnemy.position) ? curr.position : prev
-    , 0);
+    const heroes = this.getChaptersOfType([Swordsman, Bowman, Magician]);
+    const enemiesPos = enemies.map(char => char.position);
+    const heroesPos = heroes.map(char => char.position);
+    let isАctionComplite = false;
 
-    console.log(
-      getMotionRadius(randomEnemy.position, randomEnemy.character.walkingDistance, this.gamePlay.boardSize),
-      randomEnemy.position,
-      this.findCharacter(nearbyHeroesPosition),
-      this.findCharacter(randomEnemy.position)
-    );
-
-    //const checkWalkRadius = checkMotionRadius(indexCell, hero.position, hero.character.walkingDistance, this.gamePlay.boardSize);
-    //const checkAttackRadius = checkMotionRadius(indexCell, hero.position, hero.character.attackDistance, this.gamePlay.boardSize);
-    //const nearbyHero = this.findCharacter(nearbyHeroesPosition);
-
+    //if emeny can attack heroes
+    enemies.forEach(randomEnemy => {
+      const enemyAttackMotions = getMotionRadius(
+        randomEnemy.position, 
+        randomEnemy.character.attackDistance, 
+        this.gamePlay.boardSize
+      ).filter(pos => !enemiesPos.includes(pos));
     
+      
+      enemyAttackMotions.forEach(pos => {
+        const findHero = heroes.find(char => char.position === pos);
+        
+        if(findHero) {
+          heroes.forEach(hero => {
+            if(hero.position === pos && !isАctionComplite) {
+              isАctionComplite = true;
+
+              const damage = hero.character.getDamage(randomEnemy.character.attack);
+              const heroIndex = heroes.indexOf(hero);
+              
+              this.gamePlay.showDamage(hero.position, damage).then(() => {
+                if(damage >= hero.character.health) {
+                  this.params.charactersOnField.splice(heroIndex, 1);
+                } else {
+                  hero.character.setDamage(damage);
+                }
+                
+                this.resetChaptersView(randomEnemy.position);
+                this.resetChapterMove();
+                return;
+              });
+            }
+          });
+        }
+      });
+    });
+
+    //if enemy dont can attack, but can walk
+    if(!isАctionComplite) {
+      const randomEnemy = enemies[Math.floor(Math.random() * enemies.length)];
+      const enemyWalksMotions = getMotionRadius(
+        randomEnemy.position, 
+        randomEnemy.character.walkingDistance, 
+        this.gamePlay.boardSize
+      ).filter(pos => !enemiesPos.includes(pos) && !heroesPos.includes(pos));
+      const chagedPosition = enemyWalksMotions[Math.floor(Math.random() * enemyWalksMotions.length)];
+      
+      randomEnemy.position = chagedPosition;
+      this.resetChaptersView(chagedPosition);
+      isАctionComplite = true;
+      return;
+    }
   }
 
   showCharacter(index) {
@@ -207,14 +252,14 @@ export default class GameController {
       const { level, attack, defence, health } = findChar.character;
 
       this.gamePlay.showCellTooltip(
-        characterRenderInfo`🎖${level} ⚔${attack} 🛡${defence} ❤${health}`, 
+        characterRenderInfo`🎖${level} ⚔${attack} 🛡${defence} ❤${health.toFixed(1)}`, 
         index
       );
     }
   }
 
   findCharacter(index) {
-    return this.charactersOnField.find(char => char.position === index) ?? false;
+    return this.params.charactersOnField.find(char => char.position === index) ?? false;
   }
 
   characterIs(index, charactersType=[Bowman, Swordsman, Magician]) {
@@ -223,13 +268,13 @@ export default class GameController {
   }
 
   getChaptersOfType(types=[Daemon, Undead, Vampire]) {
-    return this.charactersOnField.filter(char => types.some(type => char.character instanceof type));
+    return this.params.charactersOnField.filter(char => types.some(type => char.character instanceof type));
   }
 
   resetChapterMove(walk=false, attack=false) {
-    this.chapterIsWalks = walk;
-    this.chapterIsAttacks = attack;
-    this.selectedCharacterIndex = null;
+    this.params.chapterIsWalks = walk;
+    this.params.chapterIsAttacks = attack;
+    this.params.selectedCharacterIndex = null;
   }
 
   resetChaptersView(indexCell) {
@@ -237,14 +282,14 @@ export default class GameController {
       this.gamePlay.hideCellTooltip(indexCell);
     }
 
-    this.gamePlay.redrawPositions(this.charactersOnField);
-    this.charactersOnField.forEach(char => this.gamePlay.deselectCell(char.position));
+    this.gamePlay.redrawPositions(this.params.charactersOnField);
+    this.params.charactersOnField.forEach(char => this.gamePlay.deselectCell(char.position));
     this.gamePlay.setCursor('auto');
   }
 
   deselectCells() {
     for(let i = 0; i <= ((this.gamePlay.boardSize ** 2) - 1); i++) {
-      if(i == this.selectedCharacterIndex) {
+      if(i == this.params.selectedCharacterIndex) {
         continue;   
       }
 
