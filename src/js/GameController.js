@@ -1,4 +1,4 @@
-import themes from './themes';
+import {themes, generateTheme } from './themes';
 import { calcPositionToField, checkMotionRadius, getMotionRadius } from './utils';
 import { generateTeam } from './generators';
 import PositionedCharacter from './PositionedCharacter';
@@ -15,12 +15,26 @@ export default class GameController {
     this.stateService = stateService;
 
     this.params = {
-      charactersOnField: [],
       selectedCharacterIndex: null,
+      gameStart: false,
       chapterIsWalks: false,
       chapterIsAttacks: false,
+      gameScore: 0,
       enemiesCount: 3,
-      heroesCount: 3
+      heroesCount: 3,
+      /*
+      to track changes in charactersOnField array
+      *https://developer.mozilla.org/ru/docs/Web/JavaScript/Reference/Global_Objects/Proxy
+      */
+      charactersOnField: new Proxy([], {
+        set: (target, prop, value) => {
+          target[prop] = value;
+          if(prop === 'length') {
+           this.onCharactersOnFieldChanges(target);
+          }
+          return true;
+        }
+      })
     };
   }
 
@@ -30,7 +44,6 @@ export default class GameController {
 
     // TODO: add event listeners to gamePlay events
     this.gamePlay.addNewGameListener(this.setNewGame.bind(this));
-
     // TODO: load saved stated from stateService
 
   }
@@ -41,11 +54,13 @@ export default class GameController {
   }
 
   setNewGame() {
+    this.params.generateLevelTheme = generateTheme();
+
     this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
     this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
     this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
 
-    this.params.charactersOnField = [];
+    this.params.charactersOnField.length = 0;
 
     const heroesTeam = generateTeam([Bowman, Swordsman, Magician], 3, this.params.enemiesCount);
     const enemiesTeam = generateTeam([Daemon, Undead, Vampire], 3, this.params.heroesCount);
@@ -67,7 +82,78 @@ export default class GameController {
     //update start chapters charcteristics
     this.params.charactersOnField.forEach(char => char.character.updateStartCharacteristic());
     //render game
-    this.generateGame(themes.prairie, this.params.charactersOnField);
+    const theme = this.params.generateLevelTheme.next();
+    this.generateGame(theme.value, this.params.charactersOnField);
+    this.gameStart = true;
+  }
+
+  setGameOver() {
+    this.gamePlay.cellClickListeners.length = 0;
+    this.gamePlay.cellEnterListeners.length = 0;
+    this.gamePlay.cellLeaveListeners.length = 0;
+  }
+
+  setNextLevel(heroes) {
+    const theme = this.params.generateLevelTheme.next();
+
+    if(!theme) {
+      this.setGameOver();
+    }
+    const startEnemiesPositionPointExludes = [];
+    const startHeroesPositionPointExludes = [];
+    const enemiesTeam = generateTeam([Daemon, Undead, Vampire], 3, this.params.heroesCount);
+
+    //heroes levelUp
+    heroes.forEach(hero => {
+      hero.character.setLevelUp();
+      const position = calcPositionToField(this.gamePlay.boardSize, startHeroesPositionPointExludes, 'left');
+      hero.position = position;
+    });
+
+    enemiesTeam.characters.forEach(character => {
+      const position = calcPositionToField(this.gamePlay.boardSize, startEnemiesPositionPointExludes, 'right');
+      startEnemiesPositionPointExludes.push(position);
+      this.params.charactersOnField.push(new PositionedCharacter(character.value, position));
+    });
+
+    // this.params.charactersOnField.length = 0;
+
+    // const heroesTeam = generateTeam([Bowman, Swordsman, Magician], 3, this.params.enemiesCount);
+    // const enemiesTeam = generateTeam([Daemon, Undead, Vampire], 3, this.params.heroesCount);
+    // const startHeroesPositionPointExludes = [];
+    // const startEnemiesPositionPointExludes = [];
+    
+    // heroesTeam.characters.forEach( character => {
+    //   const position = calcPositionToField(this.gamePlay.boardSize, startHeroesPositionPointExludes, 'left');
+    //   startHeroesPositionPointExludes.push(position);
+    //   this.params.charactersOnField.push(new PositionedCharacter(character.value, position));
+    // });
+
+    // enemiesTeam.characters.forEach(character => {
+    //   const position = calcPositionToField(this.gamePlay.boardSize, startEnemiesPositionPointExludes, 'right');
+    //   startEnemiesPositionPointExludes.push(position);
+    //   this.params.charactersOnField.push(new PositionedCharacter(character.value, position));
+    // });
+
+    this.generateGame(theme.value, this.params.charactersOnField);
+  }
+
+  //method observe changes in charactersOnField
+  onCharactersOnFieldChanges(changes) {
+    const heroes = this.getChaptersOfType([Bowman, Swordsman, Magician]);
+    const enemies = this.getChaptersOfType();
+
+    if(this.gameStart) {
+      if(heroes.length === 0) {
+        this.setGameOver();
+        this.gamePlay.constructor.showError('you lost\nplease, try again\nscore: ' + this.params.gameScore);
+        return;
+      }
+      
+      if(enemies.length === 0) {
+        this.setNextLevel(heroes);
+      }
+    }
   }
 
   onCellClick(index) {
@@ -154,6 +240,7 @@ export default class GameController {
       this.gamePlay.showDamage(enemy.position, damage).then(() => {
         if(damage >= enemy.character.health) {
           this.params.charactersOnField.splice(enemyIndexInTeam, 1);
+          this.params.gameScore += 1;
         } else {
           enemy.character.setDamage(damage);
         }
