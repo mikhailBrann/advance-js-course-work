@@ -29,7 +29,6 @@ export default class GameController {
     this.gamePlay.drawUi(themes.prairie);
 
     // TODO: add event listeners to gamePlay events
-    
     this.gamePlay.addNewGameListener(this.setNewGame.bind(this));
 
     // TODO: load saved stated from stateService
@@ -65,6 +64,9 @@ export default class GameController {
       this.params.charactersOnField.push(new PositionedCharacter(character.value, position));
     });
 
+    //update start chapters charcteristics
+    this.params.charactersOnField.forEach(char => char.character.updateStartCharacteristic());
+    //render game
     this.generateGame(themes.prairie, this.params.charactersOnField);
   }
 

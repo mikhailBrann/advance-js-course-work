@@ -57,4 +57,29 @@ export default class Character {
   getDamage(damage) {
     return Math.max(damage - this.defence, damage * 1);
   }
+
+  setLevelUp() {
+    if(this.level > 4) {
+      return;
+    }
+
+    this.level += 1;
+    this.attack = Math.max(this.attack, this.attack * (80 + this.health) / 100);
+    this.defence = Math.max(this.defence, this.defence * (80 + this.health) / 100);
+    this.health = this.health + 80 > 100 ? 100 : this.health + 80;
+  }
+
+  updateStartCharacteristic() {
+    if(this.level == 1) {
+      return;
+    }
+
+    //set start characteristic
+    for (let count = 1; count < this.level; count++) {
+      this.attack += this.attack * 0.3;
+      this.defence += this.defence * 0.3;
+    } 
+
+    this.health = this.health + 80 > 100 ? 100 : this.health + 80;
+  }
 }
