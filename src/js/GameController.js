@@ -43,6 +43,10 @@ export default class GameController {
     this.gamePlay.drawUi(themes.prairie);
 
     // TODO: add event listeners to gamePlay events
+    this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
+    this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
+    this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
+
     this.gamePlay.addNewGameListener(this.setNewGame.bind(this));
     // TODO: load saved stated from stateService
 
@@ -56,10 +60,6 @@ export default class GameController {
   setNewGame() {
     this.params.gameStart = false;
     this.params.generateLevelTheme = generateTheme();
-
-    this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
-    this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
-    this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
 
     this.params.charactersOnField.length = 0;
 
@@ -189,6 +189,10 @@ export default class GameController {
 
   setActionCursor(indexCell) {
     const hero = this.findCharacter(this.params.selectedCharacterIndex);
+    if(!hero) {
+      return;
+    }
+    
     const checkWalkRadius = checkMotionRadius(indexCell, hero.position, hero.character.walkingDistance, this.gamePlay.boardSize);
     const checkAttackRadius = checkMotionRadius(indexCell, hero.position, hero.character.attackDistance, this.gamePlay.boardSize);
     const enemyIndexInTeam = this.params.charactersOnField.indexOf(this.findCharacter(indexCell));
@@ -244,9 +248,9 @@ export default class GameController {
   }
 
   setViewCursor(indexCell) {
-    if(this.params.selectedCharacterIndex !== null) {
-      const hero = this.findCharacter(this.params.selectedCharacterIndex);
+    const hero = this.findCharacter(this.params.selectedCharacterIndex);
 
+    if(this.params.selectedCharacterIndex !== null && hero) {
       //default cursor on cell
       if(this.characterIs(indexCell)) {
         this.gamePlay.setCursor('pointer');
