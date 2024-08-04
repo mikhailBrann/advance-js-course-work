@@ -82,8 +82,8 @@ export default class GameController {
     //update start chapters charcteristics
     this.params.charactersOnField.forEach(char => char.character.updateStartCharacteristic());
     //render game
-    const theme = this.params.generateLevelTheme.next();
-    this.generateGame(theme.value, this.params.charactersOnField);
+    this.params.generateLevelTheme.next();
+    this.generateGame(themes.prairie, this.params.charactersOnField);
     this.gameStart = true;
   }
 
@@ -95,9 +95,11 @@ export default class GameController {
 
   setNextLevel(heroes) {
     const theme = this.params.generateLevelTheme.next();
-
-    if(!theme) {
+    console.log(theme);
+    if(theme.value === 'undefined') {
       this.setGameOver();
+      this.gamePlay.constructor.showError('you win!!!\nscore: ' + this.params.gameScore);
+      return;
     }
     const startEnemiesPositionPointExludes = [];
     const startHeroesPositionPointExludes = [];
@@ -116,24 +118,9 @@ export default class GameController {
       this.params.charactersOnField.push(new PositionedCharacter(character.value, position));
     });
 
-    // this.params.charactersOnField.length = 0;
-
-    // const heroesTeam = generateTeam([Bowman, Swordsman, Magician], 3, this.params.enemiesCount);
-    // const enemiesTeam = generateTeam([Daemon, Undead, Vampire], 3, this.params.heroesCount);
-    // const startHeroesPositionPointExludes = [];
-    // const startEnemiesPositionPointExludes = [];
-    
-    // heroesTeam.characters.forEach( character => {
-    //   const position = calcPositionToField(this.gamePlay.boardSize, startHeroesPositionPointExludes, 'left');
-    //   startHeroesPositionPointExludes.push(position);
-    //   this.params.charactersOnField.push(new PositionedCharacter(character.value, position));
-    // });
-
-    // enemiesTeam.characters.forEach(character => {
-    //   const position = calcPositionToField(this.gamePlay.boardSize, startEnemiesPositionPointExludes, 'right');
-    //   startEnemiesPositionPointExludes.push(position);
-    //   this.params.charactersOnField.push(new PositionedCharacter(character.value, position));
-    // });
+    //update start chapters charcteristics
+    const enemies = this.getChaptersOfType();
+    enemies.forEach(char => char.character.updateStartCharacteristic());
 
     this.generateGame(theme.value, this.params.charactersOnField);
   }
@@ -360,7 +347,7 @@ export default class GameController {
       const { level, attack, defence, health } = findChar.character;
 
       this.gamePlay.showCellTooltip(
-        characterRenderInfo`🎖${level} ⚔${attack} 🛡${defence} ❤${health.toFixed(1)}`, 
+        characterRenderInfo`🎖${level} ⚔${attack.toFixed(1)} 🛡${defence.toFixed(1)} ❤${health.toFixed(1)}`, 
         index
       );
     }
