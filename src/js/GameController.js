@@ -54,6 +54,7 @@ export default class GameController {
   }
 
   setNewGame() {
+    this.params.gameStart = false;
     this.params.generateLevelTheme = generateTheme();
 
     this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
@@ -84,7 +85,7 @@ export default class GameController {
     //render game
     this.params.generateLevelTheme.next();
     this.generateGame(themes.prairie, this.params.charactersOnField);
-    this.gameStart = true;
+    this.params.gameStart = true;
   }
 
   setGameOver() {
@@ -130,10 +131,11 @@ export default class GameController {
     const heroes = this.getChaptersOfType([Bowman, Swordsman, Magician]);
     const enemies = this.getChaptersOfType();
 
-    if(this.gameStart) {
+
+    if(this.params.gameStart) {
       if(heroes.length === 0) {
-        this.setGameOver();
         this.gamePlay.constructor.showError('you lost\nplease, try again\nscore: ' + this.params.gameScore);
+        this.setGameOver();
         return;
       }
       
