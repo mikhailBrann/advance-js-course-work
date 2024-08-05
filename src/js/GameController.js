@@ -95,7 +95,6 @@ export default class GameController {
       character.attack = char.attack;
       character.defence = char.defence;
       character.health = char.health;
-      //character.position = char.position;
 
       charactersOnField.push(new PositionedCharacter(character, char.position));
     });
