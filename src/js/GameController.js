@@ -17,6 +17,7 @@ export default class GameController {
     this.params = {
       selectedCharacterIndex: null,
       gameStart: false,
+      currentTheme: themes.prairie,
       chapterIsWalks: false,
       chapterIsAttacks: false,
       gameScore: 0,
@@ -40,7 +41,7 @@ export default class GameController {
 
   init() {
     //render first screen
-    this.gamePlay.drawUi(themes.prairie);
+    this.gamePlay.drawUi(this.params.currentTheme);
 
     // TODO: add event listeners to gamePlay events
     this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
@@ -49,7 +50,74 @@ export default class GameController {
 
     this.gamePlay.addNewGameListener(this.setNewGame.bind(this));
     // TODO: load saved stated from stateService
+    this.gamePlay.addSaveGameListener(this.setSaveGame.bind(this));
+    this.gamePlay.addLoadGameListener(this.setLoadGame.bind(this));
 
+  }
+
+  setSaveGame() {
+    const savedData = {};
+    savedData.characters = this.params.charactersOnField.map(char => {
+      const character = char.character;
+      character.className = character.constructor.name;
+      character.position = char.position;
+
+      return character;
+    });
+    savedData.gameScore = this.params.gameScore;
+    savedData.currentTheme = this.params.currentTheme;
+
+    this.stateService.save(savedData)
+  }
+
+  setLoadGame() {
+    const loadedData = this.stateService.load();
+    const charConstructor = {
+      Bowman: Bowman,
+      Swordsman: Swordsman,
+      Magician: Magician,
+      Daemon: Daemon,
+      Undead: Undead,
+      Vampire: Vampire
+    };
+    const charactersOnField = new Proxy([], {
+      set: (target, prop, value) => {
+        target[prop] = value;
+        if(prop === 'length') {
+         this.onCharactersOnFieldChanges(target);
+        }
+        return true;
+      }
+    });
+
+    loadedData.characters.forEach(char => {
+      const character = new charConstructor[char.className](char.level);
+      character.attack = char.attack;
+      character.defence = char.defence;
+      character.health = char.health;
+      //character.position = char.position;
+
+      charactersOnField.push(new PositionedCharacter(character, char.position));
+    });
+
+    this.params.charactersOnField = charactersOnField;
+    this.generateGame(loadedData.currentTheme, this.params.charactersOnField);
+    loadedData.gameScore = this.params.gameScore;
+    this.params.gameStart = true;
+    // set map theme
+    const newGeneratorTheme = generateTheme(loadedData.currentTheme);
+    let stopSearch = true;
+
+    while(stopSearch) {
+      if(newGeneratorTheme.next().value == loadedData.currentTheme) {
+        this.params.generateLevelTheme = newGeneratorTheme;
+        stopSearch = false;
+      }
+      
+      if(newGeneratorTheme.next().value == 'undefined') {
+        stopSearch = false;
+      }
+    }
   }
 
   generateGame(levelTheme, chapters) {
@@ -123,6 +191,7 @@ export default class GameController {
     const enemies = this.getChaptersOfType();
     enemies.forEach(char => char.character.updateStartCharacteristic());
 
+    this.params.currentTheme = theme.value;
     this.generateGame(theme.value, this.params.charactersOnField);
   }
 
